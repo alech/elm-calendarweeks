@@ -1,0 +1,17 @@
+{
+    "version": "1.0.0",
+    "summary": "Calendar weeks in different calendar systems",
+    "repository": "https://github.com/alech/elm-calendarweeks.git",
+    "license": "BSD3",
+    "source-directories": [
+        "."
+    ],
+    "exposed-modules": [
+        "Date.CalendarWeeks"
+    ],
+    "dependencies": {
+        "circuithub/elm-list-extra": "3.10.0 <= v < 4.0.0",
+        "elm-lang/core": "3.0.0 <= v < 4.0.0"
+    },
+    "elm-version": "0.16.0 <= v < 0.17.0"
+}
