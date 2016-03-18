@@ -9,6 +9,7 @@ module Date.CalendarWeeks (
   , calendarWeeksWithDaysInYear
   , whichCalendarWeek
   , daysInCalendarWeek
+  , weekDays
   , toISO8601WeekString
   , toISO8601WeekDateString
   , fromISO8601WeekString
@@ -53,7 +54,7 @@ Another use case is that you have a date and want to determine the
 corresponding calendar week, or the other way round: you have a calendar
 week and want to determine which days are part of it.
 
-@docs whichCalendarWeek, daysInCalendarWeek
+@docs whichCalendarWeek, daysInCalendarWeek, weekDays
 
 # ISO-8601
 
@@ -354,6 +355,20 @@ dates from this calendar year are not present in the list of dates.
 calendarWeeksInYear : CWSystem -> Int -> List (CalendarWeek, (List Date))
 calendarWeeksInYear cws year =
     List.filter (\e -> cwYear (fst e) == year) <| calendarWeeksWithDaysInYear cws year
+
+
+{-| Given a CWSystem, produces the seven weekdays in the order applicable
+for that calendar week system.
+-}
+weekDays : CWSystem -> List Date.Day
+weekDays cws =
+    case cws of
+        ISO8601 ->
+            [ Mon, Tue, Wed, Thu, Fri, Sat, Sun ]
+        NorthAmerican ->
+            [ Sun, Mon, Tue, Wed, Thu, Fri, Sat ]
+        Islamic ->
+            [ Sat, Sun, Mon, Tue, Wed, Thu, Fri ]
 
 
 {-| Given a CWSystem and a date, return the CalendarWeek that contains this date.
