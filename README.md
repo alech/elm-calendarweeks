@@ -6,4 +6,4 @@ documentation of the `Date.CalendarWeeks` module for more information.
 
 An example is available in the example/ folder, to compile it run
 elm-make Main.elm --output elm.js in this folder. Its output can
-be viewed at [alech.github.io][https://alech.github.io/cw/index.html].
+be viewed at [alech.github.io](https://alech.github.io/cw/index.html).
