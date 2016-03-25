@@ -3,11 +3,10 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, on, targetValue)
 import StartApp.Simple as StartApp
 import Date exposing (..)
-import Debug
 import Date.CalendarWeeks exposing (..)
 import String
-import Effects
 
+main : Signal Html.Html
 main =
     StartApp.start { model = model currentISODate, view = view, update = update }
 
@@ -29,6 +28,7 @@ type Action =
 
 -- a little blurp about which day it is, ISO-weekdate for ISO8601,
 -- just naming the calendar week for the rest
+dateCWBlurp : CWSystem -> (Maybe Date) -> String
 dateCWBlurp cws mDate =
     let
         isoDate d =
@@ -56,19 +56,19 @@ showMaybeCW mcw =
 
 -- the main calendar week table for a year, highlighting the current week
 -- TODO: highlight current date?
-showMaybeCWYearTable cws my table mcw =
-    case my of
-        Nothing -> text ""
-        Just y  -> Html.table [ class "table table-hover" ] <| [
-            Html.thead [] [
-                Html.tr [] <| [
-                    Html.th [] [ text "CW" ]
-                ]
-                ++ (List.map (\d -> Html.th [] [ text <| toString d ])
-                   <| weekDays cws)
-            ] 
-          , Html.tbody [] (List.map (\e -> cwEntryToTr e mcw) <| table)
+showCWYearTable : CWSystem -> List (CalendarWeek, List Date)
+                                -> Maybe CalendarWeek -> Html.Html
+showCWYearTable cws table mcw =
+    Html.table [ class "table table-hover" ] <| [
+        Html.thead [] [
+            Html.tr [] <| [
+                Html.th [] [ text "CW" ]
+            ]
+            ++ (List.map (\d -> Html.th [] [ text <| toString d ])
+               <| weekDays cws)
         ]
+      , Html.tbody [] (List.map (\e -> cwEntryToTr e mcw) <| table)
+    ]
 
 
 monToString : Date.Month -> String
@@ -88,30 +88,23 @@ monToString d =
         Dec -> "12"
 
 
+leftPad : Char -> Int -> String -> String
+leftPad paddingChar width s =
+    (List.foldl (++) "" <|
+      List.map (\x -> String.fromChar paddingChar) [1..width-String.length s])
+    ++ s
+
 -- zero-padding if necessary.
 dayToString : Int -> String
-dayToString d =
-    let
-        str = toString d
-    in
-        if (String.length str) == 1 then
-           "0" ++ str
-        else
-            str
+dayToString = leftPad '0' 2 << toString
 
--- zero-padding if necessary, TODO: refactor
+-- zero-padding if necessary.
 cwToString : CalendarWeek -> String
-cwToString cw =
-    let
-        str = toString <| cwWeek cw
-    in
-       if (String.length str) == 1 then
-          "0" ++ str
-       else
-          str
+cwToString = leftPad '0' 2 << toString << cwWeek
 
 
 -- one calendar week to one table row
+cwEntryToTr : (CalendarWeek, List Date) -> Maybe CalendarWeek -> Html.Html
 cwEntryToTr (cw, dates) mcw =
     Html.tr [
         class (case mcw of
@@ -135,25 +128,27 @@ computeCalendarWeek cws = Maybe.map (whichCalendarWeek cws)
 
 
 -- navigation bar with choice of years and calendar week system
+navBar : Signal.Address Action -> String -> String -> String -> CWSystem
+         -> Html.Html
 navBar address currYear prevYear nextYear cws =
     let
         isActive cws1 cws2 = -- current calendar week system
             if cws1 == cws2 then
                "active"
-            else 
+            else
                ""
         navBarYears =
             ul [ class "nav navbar-nav" ] [
                 li [] []
               , li [] [
                     Html.a [ onClick address DecreaseYear ] [ text prevYear ]
-                ]  
+                ]
               , li [ class "active" ] [
                     Html.a [ ] [ text currYear ]
-                ]  
+                ]
               , li [] [
                   Html.a [ onClick address IncreaseYear ] [ text nextYear ]
-                ]  
+                ]
             ]
         navBarCWS =
             ul [ class "nav navbar-nav navbar-right" ] [
@@ -169,7 +164,7 @@ navBar address currYear prevYear nextYear cws =
                       Html.a [ onClick address <| ChangeCWSystem Islamic ]
                              [ text "Islamic" ]
                   ]
-            ]  
+            ]
     in
         node "nav" [ class "navbar navbar-default navbar-static-top" ] [
             div [ class "container" ] [
@@ -178,13 +173,14 @@ navBar address currYear prevYear nextYear cws =
                 ]
               , div [ id "navbar", class "navbar-collapse collapse" ] [
                   navBarYears
-                , navBarCWS  
+                , navBarCWS
                 ]
             ]
         ]
 
 
 -- jumbotron containing the current date and calendar week
+currentDateAndWeekJumbotron : Model -> Html.Html
 currentDateAndWeekJumbotron model =
     div [ class "jumbotron" ] [
         h1 [] [ text (showMaybeCW model.calendarWeek) ]
@@ -194,20 +190,22 @@ currentDateAndWeekJumbotron model =
     ]
 
 
+calendarWeekTable : Model -> Html.Html
 calendarWeekTable model =
     div [ class "row" ] [
-        (showMaybeCWYearTable model.cwSystem model.currentYear
-                              model.cwTable model.calendarWeek)
+        (showCWYearTable model.cwSystem model.cwTable model.calendarWeek)
     ]
 
 
+footer : Html.Html
 footer =
     node "footer" [ class "footer" ] [
         p [] [
               text "Made with "
              , Html.a [ href "http://www.elm-lang.org" ] [ text "elm" ]
              , text ". Uses "
-             , Html.a [ href "https://github.com/alech/elm-calendarweeks" ] [text "elm-calendarweeks" ]
+             , Html.a [ href "https://github.com/alech/elm-calendarweeks" ]
+                      [ text "elm-calendarweeks" ]
              , text " by "
              , Html.a [ href "https://www.twitter.com/alech" ] [text "@alech"]
              , text "."
@@ -235,6 +233,7 @@ model dateStr =
 
 
 -- build view based on helper functions
+view : Signal.Address Action -> Model -> Html.Html
 view address model =
     let
         currYear = Maybe.withDefault "" <| Maybe.map toString model.currentYear
@@ -252,6 +251,7 @@ view address model =
 
 
 -- different ways of updating the model (changing year or calendar week system)
+update : Action -> Model -> Model
 update action model =
   case action of
     ChangeCWSystem cws ->
